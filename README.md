@@ -5,39 +5,65 @@ AI-powered resume/JD matching platform.
 ## Structure
 
 ```
-backend/    FastAPI app, one module per architecture-diagram box
-  app/
-    modules/
-      resume_processing/   upload + parse resumes into candidate profiles
-      job_intelligence/    JD -> structured "Job Blueprint"
-      matching_engine/     embeddings + composite scoring, ranked queue
-      github_intelligence/ tech-stack + credibility scoring from GitHub
-      explainability/      Insight Cards with resume citations
-frontend/   React + Vite + Tailwind + TanStack Query
+frontend/     React + Vite + Tailwind + TanStack Query
+backend/      Node.js + Express + TypeScript — main API, owns Supabase, GitHub API,
+              file handling, and orchestration. One module per architecture-diagram box:
+                resumeProcessing/    upload + store candidate profiles
+                jobIntelligence/     JD ingestion, calls ai-service for the blueprint
+                matchingEngine/      composite scoring, ranked queue
+                githubIntelligence/  fetches GitHub data, calls ai-service for scoring
+                explainability/      requests Insight Cards from ai-service
+ai-service/   Python + FastAPI — AI-only microservice, called internally by backend/:
+                POST /parse-resume   raw resume text -> structured candidate profile
+                POST /parse-job      raw JD text -> structured job blueprint
+                POST /embed          text -> vector embedding
+                POST /insight-card   candidate + job -> match explanation w/ citations
+                POST /github-score   GitHub profile/repo data -> credibility score
 ```
+
+`backend/` is the only piece the frontend or the outside world ever talks to. `ai-service/`
+is an internal service backend/ calls over HTTP — it has no database access and does no
+routing/business logic, only AI/ML calls (via Gemini).
 
 ## Prerequisites
 
-- Python 3.11+
 - Node 20+
-- A free [Supabase](https://supabase.com) project (Postgres + pgvector + Storage + Auth)
-- A [Gemini API key](https://aistudio.google.com/apikey) (free tier, for resume/JD parsing and Insight Cards)
+- Python 3.11+ (for `ai-service/` only)
+- A free [Supabase](https://supabase.com) project (Postgres + pgvector + Storage)
+- A [Gemini API key](https://aistudio.google.com/apikey) (free tier, for resume/JD parsing, embeddings, and Insight Cards)
 - A [GitHub personal access token](https://github.com/settings/tokens) (for GitHub Intelligence)
 
-## Backend setup
+## ai-service setup (Python)
 
 ```bash
-cd backend
+cd ai-service
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Fill in `.env` with your Supabase URL/service role key, Gemini key, and GitHub token. Then run:
+Fill in `.env` with your Gemini API key. Then run:
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8001
+```
+
+Visit `http://localhost:8001/health` — you should see `{"status": "ok"}`.
+
+## Backend setup (Node)
+
+```bash
+cd backend
+npm install
+copy .env.example .env
+```
+
+Fill in `.env` with your Supabase URL/service role key and GitHub token (`AI_SERVICE_URL`
+already defaults to `http://localhost:8001`). Then run:
+
+```bash
+npm run dev
 ```
 
 Visit `http://localhost:8000/health` — you should see `{"status": "ok"}`.
@@ -51,16 +77,15 @@ copy .env.example .env
 npm run dev
 ```
 
-Visit `http://localhost:5173` — the page checks the backend's `/health` endpoint and shows a green dot when both sides are wired up correctly. That's the Phase 0 exit criteria from the roadmap.
+Visit `http://localhost:5173` — the page checks the backend's `/health` endpoint and shows a green dot when everything's wired up correctly.
 
 ## Supabase setup
 
 1. Create a project at supabase.com.
-2. In the SQL editor, run: `create extension if not exists vector;`
+2. In the SQL editor, run the contents of [`ai-service/sql/001_init.sql`](ai-service/sql/001_init.sql) — creates the `vector` extension and all 6 tables (`candidates`, `jobs`, `candidate_embeddings`, `github_profiles`, `matches`, `insight_cards`).
 3. Create a Storage bucket named `resumes`.
 4. Copy the Project URL and `service_role` key (Project Settings → API) into `backend/.env`.
-5. Create the tables from the roadmap's Data Model section (`candidates`, `jobs`, `candidate_embeddings`, `matches`, `insight_cards`, `github_profiles`).
 
 ## Next steps
 
-Follow the phased roadmap: Phase 1 is resume ingestion (upload → parse → store), building on the `/resumes/upload` stub already in `backend/app/modules/resume_processing/router.py`.
+Phase 1 is resume ingestion (upload → parse → store), wiring `backend/src/modules/resumeProcessing/router.ts` to: store the file in Supabase Storage, extract its text, call `ai-service`'s `/parse-resume` and `/embed`, then write the result into `candidates` and `candidate_embeddings`.
