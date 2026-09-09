@@ -1,6 +1,6 @@
 # VStack — Talent Matching Platform
 
-AI-powered resume/JD matching platform for Hacksplosion 2026 (Talent BU track). Full plan: see the roadmap artifact shared in chat.
+AI-powered resume/JD matching platform.
 
 ## Structure
 
