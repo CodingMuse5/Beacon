@@ -6,7 +6,7 @@ from app.routers.insight import router as insight_router
 from app.routers.job import router as job_router
 from app.routers.resume import router as resume_router
 
-app = FastAPI(title="VStack AI Service")
+app = FastAPI(title="Beacon AI Service")
 
 app.include_router(resume_router)
 app.include_router(job_router)

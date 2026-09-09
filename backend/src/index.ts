@@ -23,5 +23,5 @@ app.get("/health", (_req, res) => {
 });
 
 app.listen(config.port, () => {
-  console.log(`VStack backend listening on http://localhost:${config.port}`);
+  console.log(`Beacon backend listening on http://localhost:${config.port}`);
 });

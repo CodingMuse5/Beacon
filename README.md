@@ -1,4 +1,4 @@
-# VStack — Talent Matching Platform
+# Beacon — Talent Matching Platform
 
 AI-powered resume/JD matching platform.
 

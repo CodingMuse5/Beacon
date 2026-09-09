@@ -1,4 +1,4 @@
--- VStack initial schema
+-- Beacon initial schema
 -- Run once in the Supabase SQL Editor (pgvector must already be enabled).
 
 create extension if not exists vector;
