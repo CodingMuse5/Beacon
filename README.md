@@ -21,7 +21,7 @@ frontend/   React + Vite + Tailwind + TanStack Query
 - Python 3.11+
 - Node 20+
 - A free [Supabase](https://supabase.com) project (Postgres + pgvector + Storage + Auth)
-- An [Anthropic API key](https://console.anthropic.com) (for resume/JD parsing and Insight Cards)
+- A [Gemini API key](https://aistudio.google.com/apikey) (free tier, for resume/JD parsing and Insight Cards)
 - A [GitHub personal access token](https://github.com/settings/tokens) (for GitHub Intelligence)
 
 ## Backend setup
@@ -34,7 +34,7 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Fill in `.env` with your Supabase URL/service role key, Anthropic key, and GitHub token. Then run:
+Fill in `.env` with your Supabase URL/service role key, Gemini key, and GitHub token. Then run:
 
 ```bash
 uvicorn app.main:app --reload
