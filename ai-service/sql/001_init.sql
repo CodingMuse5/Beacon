@@ -23,7 +23,7 @@ create table if not exists jobs (
     created_at timestamptz not null default now()
 );
 
--- all-MiniLM-L6-v2 (sentence-transformers, used in requirements.txt) outputs 384-dim vectors
+-- Gemini's gemini-embedding-001, truncated to 384 dims via output_dimensionality
 create table if not exists candidate_embeddings (
     id uuid primary key default gen_random_uuid(),
     candidate_id uuid not null references candidates(id) on delete cascade,

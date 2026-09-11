@@ -22,6 +22,11 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+// Express identifies error-handling middleware by its 4-argument signature, so `next` must stay even though it's unused here.
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  res.status(400).json({ error: err.message });
+});
+
 app.listen(config.port, () => {
   console.log(`Beacon backend listening on http://localhost:${config.port}`);
 });

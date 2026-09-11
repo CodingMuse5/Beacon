@@ -18,9 +18,32 @@ export default {
         warn: "#d2704a",
       },
       fontFamily: {
-        display: ['"IBM Plex Sans Condensed"', "system-ui", "sans-serif"],
-        body: ['"IBM Plex Sans"', "system-ui", "sans-serif"],
-        mono: ['"IBM Plex Mono"', "ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
+        display: ['"Bricolage Grotesque"', "system-ui", "sans-serif"],
+        body: ['"Manrope"', "system-ui", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
+        serif: ['"Fraunces"', "ui-serif", "Georgia", "serif"],
+      },
+      transitionTimingFunction: {
+        spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      },
+      keyframes: {
+        "result-in": {
+          "0%": { opacity: "0", transform: "translateY(6px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "header-sweep": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(250%)" },
+        },
+        "scan-sweep": {
+          "0%": { transform: "translateY(-100%)" },
+          "100%": { transform: "translateY(250%)" },
+        },
+      },
+      animation: {
+        "result-in": "result-in 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both",
+        "header-sweep": "header-sweep 6s ease-in-out infinite",
+        "scan-sweep": "scan-sweep 3.2s linear infinite",
       },
     },
   },
