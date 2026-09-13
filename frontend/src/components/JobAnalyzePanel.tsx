@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { analyzeJob, type Job } from "../api";
+import { analyzeJob, getMatches, type Job, type RankedCandidate } from "../api";
 import { useTilt } from "../hooks/useTilt";
 import { MiniIcon3D } from "./MiniIcon3D";
 import { PanelChrome } from "./PanelChrome";
@@ -115,6 +115,76 @@ function JobResult({ job }: { job: Job }) {
             <li key={i}>{r}</li>
           ))}
         </ul>
+      )}
+
+      <MatchResults jobId={job.id} />
+    </div>
+  );
+}
+
+function MatchResults({ jobId }: { jobId: string }) {
+  const mutation = useMutation({ mutationFn: () => getMatches(jobId) });
+
+  return (
+    <div className="mt-6 border-t border-border-soft pt-6">
+      <button
+        type="button"
+        className="flex items-center gap-2 border border-contact px-5 py-3 font-mono text-xs uppercase tracking-[0.12em] text-contact transition-transform duration-200 ease-spring hover:bg-contact hover:text-ground motion-safe:hover:scale-[1.03] motion-safe:active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+        disabled={mutation.isPending}
+        onClick={() => mutation.mutate()}
+      >
+        {mutation.isPending && <Spinner />}
+        {mutation.isPending ? "Finding matches…" : "Find matches"}
+      </button>
+
+      {mutation.isError && <p className="mt-4 text-sm text-warn">{(mutation.error as Error).message}</p>}
+
+      {mutation.isSuccess && (
+        <div className="mt-5 flex flex-col gap-4 motion-safe:animate-result-in">
+          {mutation.data.candidates.length === 0 && (
+            <p className="font-mono text-xs uppercase tracking-[0.1em] text-text-faint">
+              No candidates in the pool yet.
+            </p>
+          )}
+          {mutation.data.candidates.map((c, i) => (
+            <CandidateMatchRow key={c.candidate_id} rank={i + 1} candidate={c} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CandidateMatchRow({ rank, candidate }: { rank: number; candidate: RankedCandidate }) {
+  const percent = Math.round(candidate.score * 100);
+  return (
+    <div className="border border-border-soft bg-ground/40 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-display text-base font-semibold text-text">
+          <span className="mr-2 font-mono text-xs text-text-faint">#{rank}</span>
+          {candidate.full_name ?? "Unnamed candidate"}
+        </p>
+        <p className="font-mono text-lg font-semibold text-contact">{percent}%</p>
+      </div>
+
+      <div className="mt-2 h-1.5 w-full bg-border-soft">
+        <div className="h-full bg-contact transition-all duration-500" style={{ width: `${percent}%` }} />
+      </div>
+
+      {candidate.matched_required_skills.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {candidate.matched_required_skills.map((s) => (
+            <Tag key={s} variant="contact">
+              {s}
+            </Tag>
+          ))}
+        </div>
+      )}
+
+      {candidate.missing_required_skills.length > 0 && (
+        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.1em] text-warn">
+          Missing: {candidate.missing_required_skills.join(", ")}
+        </p>
       )}
     </div>
   );
