@@ -117,12 +117,12 @@ function JobResult({ job }: { job: Job }) {
         </ul>
       )}
 
-      <MatchResults jobId={job.id} />
+      <MatchResults jobId={job.id} jobTitle={job.title} />
     </div>
   );
 }
 
-function MatchResults({ jobId }: { jobId: string }) {
+function MatchResults({ jobId, jobTitle }: { jobId: string; jobTitle: string }) {
   const mutation = useMutation({ mutationFn: () => getMatches(jobId) });
 
   return (
@@ -140,52 +140,91 @@ function MatchResults({ jobId }: { jobId: string }) {
       {mutation.isError && <p className="mt-4 text-sm text-warn">{(mutation.error as Error).message}</p>}
 
       {mutation.isSuccess && (
-        <div className="mt-5 flex flex-col gap-4 motion-safe:animate-result-in">
+        <div className="mt-6 motion-safe:animate-result-in">
+          <p className="font-display text-lg font-semibold text-text">Ranked candidates</p>
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">
+            {mutation.data.candidates.length} candidate{mutation.data.candidates.length === 1 ? "" : "s"} scored
+            against &quot;{jobTitle}&quot;
+          </p>
+
           {mutation.data.candidates.length === 0 && (
-            <p className="font-mono text-xs uppercase tracking-[0.1em] text-text-faint">
+            <p className="mt-4 font-mono text-xs uppercase tracking-[0.1em] text-text-faint">
               No candidates in the pool yet.
             </p>
           )}
-          {mutation.data.candidates.map((c, i) => (
-            <CandidateMatchRow key={c.candidate_id} rank={i + 1} candidate={c} />
-          ))}
+
+          <div className="mt-5 flex flex-col gap-4">
+            {mutation.data.candidates.map((c, i) => (
+              <CandidateMatchRow key={c.candidate_id} rank={i + 1} candidate={c} />
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
+function ScoreRing({ percent }: { percent: number }) {
+  const size = 64;
+  const strokeWidth = 6;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - percent / 100);
+
+  return (
+    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#2b3543" strokeWidth={strokeWidth} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#5fb8b0"
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="transition-all duration-700 ease-out"
+        />
+      </svg>
+      <span className="absolute font-mono text-sm font-semibold text-contact">{percent}%</span>
+    </div>
+  );
+}
+
 function CandidateMatchRow({ rank, candidate }: { rank: number; candidate: RankedCandidate }) {
   const percent = Math.round(candidate.score * 100);
+  const shortId = candidate.candidate_id.slice(0, 8);
+
   return (
-    <div className="border border-border-soft bg-ground/40 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-display text-base font-semibold text-text">
-          <span className="mr-2 font-mono text-xs text-text-faint">#{rank}</span>
-          {candidate.full_name ?? "Unnamed candidate"}
-        </p>
-        <p className="font-mono text-lg font-semibold text-contact">{percent}%</p>
-      </div>
+    <div className="flex items-center gap-4 border border-border-soft bg-ground/40 p-4">
+      <ScoreRing percent={percent} />
 
-      <div className="mt-2 h-1.5 w-full bg-border-soft">
-        <div className="h-full bg-contact transition-all duration-500" style={{ width: `${percent}%` }} />
-      </div>
-
-      {candidate.matched_required_skills.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {candidate.matched_required_skills.map((s) => (
-            <Tag key={s} variant="contact">
-              {s}
-            </Tag>
-          ))}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="font-mono text-xs text-text-faint">#{rank}</span>
+          <p className="font-display text-base font-semibold text-text">{candidate.full_name ?? "Unnamed candidate"}</p>
+          <span className="font-mono text-[10px] text-text-faint">· #{shortId}</span>
         </div>
-      )}
+        {candidate.email && <p className="font-mono text-[10.5px] text-text-faint">{candidate.email}</p>}
 
-      {candidate.missing_required_skills.length > 0 && (
-        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.1em] text-warn">
-          Missing: {candidate.missing_required_skills.join(", ")}
-        </p>
-      )}
+        {candidate.matched_required_skills.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {candidate.matched_required_skills.map((s) => (
+              <Tag key={s} variant="contact">
+                {s}
+              </Tag>
+            ))}
+          </div>
+        )}
+
+        {candidate.missing_required_skills.length > 0 && (
+          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.1em] text-warn">
+            Missing: {candidate.missing_required_skills.join(", ")}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
