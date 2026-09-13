@@ -71,3 +71,20 @@ export async function analyzeJob(title: string, rawText: string): Promise<{ stat
   });
   return parseJsonOrThrow(res);
 }
+
+export interface RankedCandidate {
+  candidate_id: string;
+  full_name: string | null;
+  email: string | null;
+  skills: string[];
+  score: number;
+  vector_similarity: number;
+  skill_overlap: number | null;
+  matched_required_skills: string[];
+  missing_required_skills: string[];
+}
+
+export async function getMatches(jobId: string): Promise<{ job_id: string; candidates: RankedCandidate[] }> {
+  const res = await fetch(`${API_URL}/matches/${jobId}`);
+  return parseJsonOrThrow(res);
+}
