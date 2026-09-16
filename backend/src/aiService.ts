@@ -50,7 +50,9 @@ export interface GithubScore {
 // 502/503/504 HTML error page instead of a real response. Retrying with backoff rides
 // out that cold-start window instead of surfacing it as a failure.
 const COLD_START_STATUSES = new Set([502, 503, 504]);
-const RETRY_DELAYS_MS = [3000, 8000, 15000];
+// Measured cold-start time for the Render free-tier ai-service is ~30-35s; these
+// delays give a comfortable margin above that (total wait ~65s across 4 retries).
+const RETRY_DELAYS_MS = [5000, 10000, 20000, 30000];
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
