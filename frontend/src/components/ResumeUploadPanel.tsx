@@ -10,7 +10,7 @@ import { Tag } from "./Tag";
 export function ResumeUploadPanel() {
   const [fileName, setFileName] = useState<string | null>(null);
   const mutation = useMutation({ mutationFn: uploadResume });
-  const tilt = useTilt();
+  const tilt = useTilt(5, mutation.isSuccess);
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

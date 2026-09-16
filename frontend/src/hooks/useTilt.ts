@@ -1,11 +1,21 @@
-import { type CSSProperties, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 
-export function useTilt(maxTiltDeg = 5) {
+export function useTilt(maxTiltDeg = 5, disabled = false) {
   const ref = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<CSSProperties>({});
   const [glow, setGlow] = useState({ x: 50, y: 50, opacity: 0 });
 
+  // A tilt already in progress when results appear (disabling the effect) would
+  // otherwise stay frozen at its last angle until the next mouse event.
+  useEffect(() => {
+    if (disabled) {
+      setStyle({});
+      setGlow((g) => ({ ...g, opacity: 0 }));
+    }
+  }, [disabled]);
+
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (disabled) return;
     const el = ref.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();

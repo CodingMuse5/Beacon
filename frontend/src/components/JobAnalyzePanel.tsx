@@ -11,7 +11,7 @@ export function JobAnalyzePanel() {
   const [title, setTitle] = useState("");
   const [rawText, setRawText] = useState("");
   const mutation = useMutation({ mutationFn: () => analyzeJob(title, rawText) });
-  const tilt = useTilt();
+  const tilt = useTilt(5, mutation.isSuccess);
 
   return (
     <div
