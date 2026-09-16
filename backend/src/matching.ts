@@ -27,6 +27,41 @@ function normalizeSkill(skill: string): string {
   return skill.trim().toLowerCase();
 }
 
+// Exact-string matching alone misses common spelling variants of the same technology
+// (e.g. a candidate lists "React.js" but the job requires "React"). This maps known
+// variants to one canonical form, used only for the match comparison -- displayed
+// skill text still uses normalizeSkill's output, unaffected by this table.
+const SKILL_ALIASES: Record<string, string> = {
+  "react.js": "react",
+  reactjs: "react",
+  "node.js": "node",
+  nodejs: "node",
+  "express.js": "express",
+  expressjs: "express",
+  "vue.js": "vue",
+  vuejs: "vue",
+  "next.js": "next",
+  nextjs: "next",
+  "nest.js": "nest",
+  nestjs: "nest",
+  js: "javascript",
+  ts: "typescript",
+  golang: "go",
+  postgres: "postgresql",
+  psql: "postgresql",
+  mongo: "mongodb",
+  k8s: "kubernetes",
+  "gh actions": "github actions",
+  py: "python",
+  csharp: "c#",
+  "c sharp": "c#",
+};
+
+function canonicalizeSkill(skill: string): string {
+  const normalized = normalizeSkill(skill);
+  return SKILL_ALIASES[normalized] ?? normalized;
+}
+
 function parseEmbedding(raw: unknown): number[] {
   return typeof raw === "string" ? JSON.parse(raw) : (raw as number[]);
 }
@@ -42,7 +77,10 @@ export async function rankCandidatesForJob(jobId: string): Promise<RankedCandida
 
   const embedding = parseEmbedding(job.embedding);
   const blueprint = job.blueprint as JobBlueprint;
-  const requiredSkills = (blueprint.required_skills ?? []).map(normalizeSkill);
+  const requiredSkills = (blueprint.required_skills ?? []).map((s) => ({
+    display: normalizeSkill(s),
+    canonical: canonicalizeSkill(s),
+  }));
 
   const { data: matches, error: rpcError } = await supabase.rpc("match_candidates", {
     query_embedding: embedding,
@@ -64,10 +102,10 @@ export async function rankCandidatesForJob(jobId: string): Promise<RankedCandida
 
   const ranked: RankedCandidate[] = candidateMatches.map((m) => {
     const candidate = candidateById.get(m.candidate_id);
-    const candidateSkills = new Set((candidate?.skills ?? []).map(normalizeSkill));
+    const candidateSkills = new Set((candidate?.skills ?? []).map(canonicalizeSkill));
 
-    const matched = requiredSkills.filter((s) => candidateSkills.has(s));
-    const missing = requiredSkills.filter((s) => !candidateSkills.has(s));
+    const matched = requiredSkills.filter((s) => candidateSkills.has(s.canonical)).map((s) => s.display);
+    const missing = requiredSkills.filter((s) => !candidateSkills.has(s.canonical)).map((s) => s.display);
     const skillOverlap = requiredSkills.length > 0 ? matched.length / requiredSkills.length : null;
 
     const vectorSimilarity = Math.max(0, Math.min(1, m.similarity));
