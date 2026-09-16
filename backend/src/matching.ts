@@ -11,6 +11,7 @@ interface CandidateEmbeddingMatch {
 }
 
 export interface RankedCandidate {
+  match_id: string;
   candidate_id: string;
   full_name: string | null;
   email: string | null;
@@ -73,6 +74,7 @@ export async function rankCandidatesForJob(jobId: string): Promise<RankedCandida
     const score = skillOverlap === null ? vectorSimilarity : VECTOR_WEIGHT * vectorSimilarity + SKILL_WEIGHT * skillOverlap;
 
     return {
+      match_id: "",
       candidate_id: m.candidate_id,
       full_name: candidate?.full_name ?? null,
       email: candidate?.email ?? null,
@@ -87,13 +89,19 @@ export async function rankCandidatesForJob(jobId: string): Promise<RankedCandida
 
   ranked.sort((a, b) => b.score - a.score);
 
-  const { error: upsertError } = await supabase
+  const { data: savedMatches, error: upsertError } = await supabase
     .from("matches")
     .upsert(
       ranked.map((r) => ({ job_id: jobId, candidate_id: r.candidate_id, score: r.score })),
       { onConflict: "job_id,candidate_id" },
-    );
+    )
+    .select("id, candidate_id");
   if (upsertError) throw new Error(`Failed to save matches: ${upsertError.message}`);
+
+  const matchIdByCandidateId = new Map(savedMatches.map((m) => [m.candidate_id, m.id]));
+  for (const r of ranked) {
+    r.match_id = matchIdByCandidateId.get(r.candidate_id) ?? "";
+  }
 
   return ranked;
 }

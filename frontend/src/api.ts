@@ -73,6 +73,7 @@ export async function analyzeJob(title: string, rawText: string): Promise<{ stat
 }
 
 export interface RankedCandidate {
+  match_id: string;
   candidate_id: string;
   full_name: string | null;
   email: string | null;
@@ -86,5 +87,16 @@ export interface RankedCandidate {
 
 export async function getMatches(jobId: string): Promise<{ job_id: string; candidates: RankedCandidate[] }> {
   const res = await fetch(`${API_URL}/matches/${jobId}`);
+  return parseJsonOrThrow(res);
+}
+
+export interface InsightCard {
+  headline: string;
+  matching_points: { point: string; resume_citation?: string }[];
+  gaps?: string[];
+}
+
+export async function getInsightCard(matchId: string): Promise<{ match_id: string; cards: InsightCard[]; cached: boolean }> {
+  const res = await fetch(`${API_URL}/insight-cards/${matchId}`);
   return parseJsonOrThrow(res);
 }

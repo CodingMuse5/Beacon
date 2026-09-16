@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
-import { analyzeJob, getMatches, type Job, type RankedCandidate } from "../api";
+import { useEffect, useState } from "react";
+import { analyzeJob, getInsightCard, getMatches, type Job, type RankedCandidate } from "../api";
 import { useTilt } from "../hooks/useTilt";
 import { MiniIcon3D } from "./MiniIcon3D";
 import { PanelChrome } from "./PanelChrome";
@@ -196,35 +196,102 @@ function ScoreRing({ percent }: { percent: number }) {
 function CandidateMatchRow({ rank, candidate }: { rank: number; candidate: RankedCandidate }) {
   const percent = Math.round(candidate.score * 100);
   const shortId = candidate.candidate_id.slice(0, 8);
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="flex items-center gap-4 border border-border-soft bg-ground/40 p-4">
-      <ScoreRing percent={percent} />
+    <div className="border border-border-soft bg-ground/40 p-4">
+      <div className="flex items-center gap-4">
+        <ScoreRing percent={percent} />
 
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2">
-          <span className="font-mono text-xs text-text-faint">#{rank}</span>
-          <p className="font-display text-base font-semibold text-text">{candidate.full_name ?? "Unnamed candidate"}</p>
-          <span className="font-mono text-[10px] text-text-faint">· #{shortId}</span>
-        </div>
-        {candidate.email && <p className="font-mono text-[10.5px] text-text-faint">{candidate.email}</p>}
-
-        {candidate.matched_required_skills.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {candidate.matched_required_skills.map((s) => (
-              <Tag key={s} variant="contact">
-                {s}
-              </Tag>
-            ))}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span className="font-mono text-xs text-text-faint">#{rank}</span>
+            <p className="font-display text-base font-semibold text-text">{candidate.full_name ?? "Unnamed candidate"}</p>
+            <span className="font-mono text-[10px] text-text-faint">· #{shortId}</span>
           </div>
-        )}
+          {candidate.email && <p className="font-mono text-[10.5px] text-text-faint">{candidate.email}</p>}
 
-        {candidate.missing_required_skills.length > 0 && (
-          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.1em] text-warn">
-            Missing: {candidate.missing_required_skills.join(", ")}
-          </p>
-        )}
+          {candidate.matched_required_skills.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {candidate.matched_required_skills.map((s) => (
+                <Tag key={s} variant="contact">
+                  {s}
+                </Tag>
+              ))}
+            </div>
+          )}
+
+          {candidate.missing_required_skills.length > 0 && (
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.1em] text-warn">
+              Missing: {candidate.missing_required_skills.join(", ")}
+            </p>
+          )}
+
+          <button
+            type="button"
+            className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-contact hover:underline"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? "Hide reasoning ▲" : "Why this match? ▼"}
+          </button>
+        </div>
       </div>
+
+      {expanded && <InsightCardSection matchId={candidate.match_id} />}
+    </div>
+  );
+}
+
+function InsightCardSection({ matchId }: { matchId: string }) {
+  const mutation = useMutation({ mutationFn: () => getInsightCard(matchId) });
+  const { mutate } = mutation;
+
+  useEffect(() => {
+    mutate();
+  }, [mutate]);
+
+  return (
+    <div className="mt-4 border-t border-border-soft pt-4">
+      {mutation.isPending && (
+        <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">
+          <Spinner /> Generating reasoning…
+        </p>
+      )}
+
+      {mutation.isError && <p className="font-mono text-[10px] text-warn">{(mutation.error as Error).message}</p>}
+
+      {mutation.isSuccess &&
+        mutation.data.cards.map((card, i) => (
+          <div key={i} className="motion-safe:animate-result-in">
+            <p className="font-display text-sm font-semibold text-text">{card.headline}</p>
+
+            {card.matching_points.length > 0 && (
+              <ul className="mt-2 flex flex-col gap-1.5">
+                {card.matching_points.map((mp, j) => (
+                  <li key={j} className="text-xs leading-relaxed text-text-dim">
+                    <span className="text-contact">✓</span> {mp.point}
+                    {mp.resume_citation && (
+                      <span className="ml-1 font-mono text-[10px] italic text-text-faint">— "{mp.resume_citation}"</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {card.gaps && card.gaps.length > 0 && (
+              <div className="mt-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">Gaps</p>
+                <ul className="mt-1 flex flex-col gap-1">
+                  {card.gaps.map((gap, j) => (
+                    <li key={j} className="text-xs leading-relaxed text-warn">
+                      {gap}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ))}
     </div>
   );
 }
