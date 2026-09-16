@@ -45,17 +45,48 @@ export interface GithubScore {
   notable_repos?: string[];
 }
 
+// Render's free tier spins the ai-service down after inactivity; the first request
+// after a while can hit the gateway before the app has finished booting, returning a
+// 502/503/504 HTML error page instead of a real response. Retrying with backoff rides
+// out that cold-start window instead of surfacing it as a failure.
+const COLD_START_STATUSES = new Set([502, 503, 504]);
+const RETRY_DELAYS_MS = [3000, 8000, 15000];
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function callAiService<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${config.aiServiceUrl}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`AI service ${path} failed: ${res.status} ${text}`);
+  let lastError: Error = new Error(`AI service ${path} failed: unknown error`);
+
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      const res = await fetch(`${config.aiServiceUrl}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        return res.json() as Promise<T>;
+      }
+
+      const text = await res.text();
+      lastError = new Error(`AI service ${path} failed: ${res.status} ${text}`);
+
+      if (!COLD_START_STATUSES.has(res.status) || attempt === RETRY_DELAYS_MS.length) {
+        throw lastError;
+      }
+    } catch (err) {
+      if (err === lastError) throw err;
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt === RETRY_DELAYS_MS.length) throw lastError;
+    }
+
+    await sleep(RETRY_DELAYS_MS[attempt]);
   }
-  return res.json() as Promise<T>;
+
+  throw lastError;
 }
 
 export const aiService = {
