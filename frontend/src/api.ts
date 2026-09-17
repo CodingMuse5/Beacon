@@ -100,3 +100,17 @@ export async function getInsightCard(matchId: string): Promise<{ match_id: strin
   const res = await fetch(`${API_URL}/insight-cards/${matchId}`);
   return parseJsonOrThrow(res);
 }
+
+export interface GithubScore {
+  username: string;
+  tech_stack_score: number;
+  credibility_score: number;
+  reasoning: string | null;
+  notable_repos: string[];
+  cached: boolean;
+}
+
+export async function getGithubScore(username: string): Promise<GithubScore> {
+  const res = await fetch(`${API_URL}/github/${encodeURIComponent(username)}/score`);
+  return parseJsonOrThrow(res);
+}

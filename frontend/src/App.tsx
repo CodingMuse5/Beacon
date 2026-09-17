@@ -1,3 +1,4 @@
+import { GithubIntelligencePanel } from "./components/GithubIntelligencePanel";
 import { Hero } from "./components/Hero";
 import { JobAnalyzePanel } from "./components/JobAnalyzePanel";
 import { ResumeUploadPanel } from "./components/ResumeUploadPanel";
@@ -13,6 +14,7 @@ export default function App() {
         <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
           <ResumeUploadPanel />
           <JobAnalyzePanel />
+          <GithubIntelligencePanel />
         </div>
       </main>
     </div>

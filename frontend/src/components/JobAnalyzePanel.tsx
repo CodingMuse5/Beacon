@@ -4,6 +4,7 @@ import { analyzeJob, getInsightCard, getMatches, type Job, type RankedCandidate 
 import { useTilt } from "../hooks/useTilt";
 import { MiniIcon3D } from "./MiniIcon3D";
 import { PanelChrome } from "./PanelChrome";
+import { ScoreRing } from "./ScoreRing";
 import { Spinner } from "./Spinner";
 import { Tag } from "./Tag";
 
@@ -160,35 +161,6 @@ function MatchResults({ jobId, jobTitle }: { jobId: string; jobTitle: string }) 
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function ScoreRing({ percent }: { percent: number }) {
-  const size = 64;
-  const strokeWidth = 6;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - percent / 100);
-
-  return (
-    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#2b3543" strokeWidth={strokeWidth} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#5fb8b0"
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-700 ease-out"
-        />
-      </svg>
-      <span className="absolute font-mono text-sm font-semibold text-contact">{percent}%</span>
     </div>
   );
 }
