@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { Router } from "express";
 import multer from "multer";
-import { aiService } from "../../aiService";
+import { aiService, AiServiceUnavailableError } from "../../aiService";
 import { buildCandidateEmbeddingText } from "../../embeddingText";
 import { supabase } from "../../supabase";
 import { extractResumeText, SUPPORTED_RESUME_MIME_TYPES } from "../../textExtraction";
@@ -70,6 +70,10 @@ router.post("/upload", upload.single("file"), async (req, res) => {
       candidate,
     });
   } catch (err) {
+    if (err instanceof AiServiceUnavailableError) {
+      res.status(503).json({ error: err.message });
+      return;
+    }
     const message = err instanceof Error ? err.message : "Unknown error processing resume.";
     res.status(502).json({ error: message });
   }

@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { type ChangeEvent, useState } from "react";
 import { type Candidate, uploadResume } from "../api";
 import { useTilt } from "../hooks/useTilt";
+import { ErrorState } from "./ErrorState";
 import { MiniIcon3D } from "./MiniIcon3D";
 import { PanelChrome } from "./PanelChrome";
 import { Spinner } from "./Spinner";
@@ -59,7 +60,9 @@ export function ResumeUploadPanel() {
             Scanning resume…
           </p>
         )}
-        {mutation.isError && <p className="mt-4 text-sm text-warn">{(mutation.error as Error).message}</p>}
+        {mutation.isError && (
+          <ErrorState error={mutation.error as Error} onRetry={() => mutation.variables && mutation.mutate(mutation.variables)} />
+        )}
         {mutation.isSuccess && <CandidateResult candidate={mutation.data.candidate} />}
       </div>
     </div>

@@ -54,41 +54,66 @@ const COLD_START_STATUSES = new Set([502, 503, 504]);
 // delays give a comfortable margin above that (total wait ~65s across 4 retries).
 const RETRY_DELAYS_MS = [5000, 10000, 20000, 30000];
 
+// Thrown only when every retry against a 502/503/504 gateway response was exhausted --
+// i.e. the ai-service never finished waking up in time. Routes translate this into a
+// 503 with a clean, human message; the frontend renders a distinct "still waking up,
+// try again" UI for it instead of dumping Render's raw HTML error page on screen.
+export class AiServiceUnavailableError extends Error {}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function callAiService<T>(path: string, body: unknown): Promise<T> {
-  let lastError: Error = new Error(`AI service ${path} failed: unknown error`);
+  let lastStatus = 0;
 
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    let res: Response;
     try {
-      const res = await fetch(`${config.aiServiceUrl}${path}`, {
+      res = await fetch(`${config.aiServiceUrl}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
-      if (res.ok) {
-        return res.json() as Promise<T>;
-      }
-
-      const text = await res.text();
-      lastError = new Error(`AI service ${path} failed: ${res.status} ${text}`);
-
-      if (!COLD_START_STATUSES.has(res.status) || attempt === RETRY_DELAYS_MS.length) {
-        throw lastError;
-      }
     } catch (err) {
-      if (err === lastError) throw err;
-      lastError = err instanceof Error ? err : new Error(String(err));
-      if (attempt === RETRY_DELAYS_MS.length) throw lastError;
+      // A network-level failure (connection refused, DNS, etc.) behaves the same as a
+      // gateway status here -- worth riding out with the same retry/backoff.
+      lastStatus = 0;
+      if (attempt === RETRY_DELAYS_MS.length) {
+        throw new AiServiceUnavailableError(
+          "The AI service is still waking up. This can take up to a minute on the first request after a period of inactivity -- please try again shortly.",
+        );
+      }
+      await sleep(RETRY_DELAYS_MS[attempt]);
+      continue;
+    }
+
+    if (res.ok) {
+      return res.json() as Promise<T>;
+    }
+
+    lastStatus = res.status;
+
+    if (!COLD_START_STATUSES.has(res.status)) {
+      // A real application error (4xx, or a genuine 500 from the app itself) -- surface
+      // its actual message immediately rather than retrying something that won't fix
+      // itself with time.
+      const text = await res.text();
+      throw new Error(`AI service ${path} failed: ${res.status} ${text}`);
+    }
+
+    if (attempt === RETRY_DELAYS_MS.length) {
+      throw new AiServiceUnavailableError(
+        "The AI service is still waking up. This can take up to a minute on the first request after a period of inactivity -- please try again shortly.",
+      );
     }
 
     await sleep(RETRY_DELAYS_MS[attempt]);
   }
 
-  throw lastError;
+  throw new AiServiceUnavailableError(
+    `The AI service is still waking up (last status: ${lastStatus}). Please try again shortly.`,
+  );
 }
 
 export const aiService = {

@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { getGithubScore, type GithubScore } from "../api";
 import { useTilt } from "../hooks/useTilt";
+import { ErrorState } from "./ErrorState";
 import { MiniIcon3D } from "./MiniIcon3D";
 import { PanelChrome } from "./PanelChrome";
 import { ScoreRing } from "./ScoreRing";
@@ -61,7 +62,7 @@ export function GithubIntelligencePanel() {
           {mutation.isPending ? "Scoring…" : "Check profile"}
         </button>
 
-        {mutation.isError && <p className="mt-4 text-sm text-warn">{(mutation.error as Error).message}</p>}
+        {mutation.isError && <ErrorState error={mutation.error as Error} onRetry={() => mutation.mutate()} />}
         {mutation.isSuccess && <GithubScoreResult score={mutation.data} />}
       </div>
     </div>

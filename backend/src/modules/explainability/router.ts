@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { aiService } from "../../aiService";
+import { aiService, AiServiceUnavailableError } from "../../aiService";
 import { supabase } from "../../supabase";
 
 const router = Router();
@@ -43,6 +43,10 @@ router.get("/:matchId", async (req, res) => {
 
     res.json({ match_id: matchId, cards: [insightCard], cached: false });
   } catch (err) {
+    if (err instanceof AiServiceUnavailableError) {
+      res.status(503).json({ error: err.message });
+      return;
+    }
     const message = err instanceof Error ? err.message : "Unknown error generating insight card.";
     res.status(502).json({ error: message });
   }

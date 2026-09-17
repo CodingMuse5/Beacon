@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { aiService } from "../../aiService";
+import { aiService, AiServiceUnavailableError } from "../../aiService";
 import { buildJobEmbeddingText } from "../../embeddingText";
 import { supabase } from "../../supabase";
 
@@ -35,6 +35,10 @@ router.post("/analyze", async (req, res) => {
       job,
     });
   } catch (err) {
+    if (err instanceof AiServiceUnavailableError) {
+      res.status(503).json({ error: err.message });
+      return;
+    }
     const message = err instanceof Error ? err.message : "Unknown error processing job description.";
     res.status(502).json({ error: message });
   }

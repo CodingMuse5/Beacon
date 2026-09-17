@@ -50,9 +50,17 @@ export interface Job {
   created_at: string;
 }
 
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function parseJsonOrThrow<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error ?? `Request failed with status ${res.status}`);
+  if (!res.ok) throw new ApiError(data.error ?? `Request failed with status ${res.status}`, res.status);
   return data as T;
 }
 

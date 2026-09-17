@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { analyzeJob, getInsightCard, getMatches, type Job, type RankedCandidate } from "../api";
 import { useTilt } from "../hooks/useTilt";
+import { ErrorState } from "./ErrorState";
 import { MiniIcon3D } from "./MiniIcon3D";
 import { PanelChrome } from "./PanelChrome";
 import { ScoreRing } from "./ScoreRing";
@@ -65,7 +66,7 @@ export function JobAnalyzePanel() {
           {mutation.isPending ? "Scanning…" : "Scan"}
         </button>
 
-        {mutation.isError && <p className="mt-4 text-sm text-warn">{(mutation.error as Error).message}</p>}
+        {mutation.isError && <ErrorState error={mutation.error as Error} onRetry={() => mutation.mutate()} />}
         {mutation.isSuccess && <JobResult job={mutation.data.job} />}
       </div>
     </div>
@@ -138,7 +139,7 @@ function MatchResults({ jobId, jobTitle }: { jobId: string; jobTitle: string }) 
         {mutation.isPending ? "Finding matches…" : "Find matches"}
       </button>
 
-      {mutation.isError && <p className="mt-4 text-sm text-warn">{(mutation.error as Error).message}</p>}
+      {mutation.isError && <ErrorState error={mutation.error as Error} onRetry={() => mutation.mutate()} />}
 
       {mutation.isSuccess && (
         <div className="mt-6 motion-safe:animate-result-in">
@@ -230,7 +231,7 @@ function InsightCardSection({ matchId }: { matchId: string }) {
         </p>
       )}
 
-      {mutation.isError && <p className="font-mono text-[10px] text-warn">{(mutation.error as Error).message}</p>}
+      {mutation.isError && <ErrorState error={mutation.error as Error} onRetry={() => mutation.mutate()} />}
 
       {mutation.isSuccess &&
         mutation.data.cards.map((card, i) => (

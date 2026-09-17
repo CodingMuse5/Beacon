@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { aiService } from "../../aiService";
+import { aiService, AiServiceUnavailableError } from "../../aiService";
 import { fetchGithubProfile, fetchGithubRepos, GithubNotFoundError } from "../../githubClient";
 import { supabase } from "../../supabase";
 
@@ -43,6 +43,10 @@ router.get("/:username/score", async (req, res) => {
   } catch (err) {
     if (err instanceof GithubNotFoundError) {
       res.status(404).json({ error: err.message });
+      return;
+    }
+    if (err instanceof AiServiceUnavailableError) {
+      res.status(503).json({ error: err.message });
       return;
     }
     const message = err instanceof Error ? err.message : "Unknown error scoring GitHub profile.";
