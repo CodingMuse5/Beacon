@@ -11,7 +11,9 @@ import { Tag } from "./Tag";
 
 export function GithubIntelligencePanel() {
   const [username, setUsername] = useState("");
-  const mutation = useMutation({ mutationFn: () => getGithubScore(username.trim()) });
+  const mutation = useMutation({
+    mutationFn: (opts?: { refresh?: boolean }) => getGithubScore(username.trim(), opts?.refresh),
+  });
   const tilt = useTilt(5, mutation.isSuccess);
 
   return (
@@ -63,18 +65,43 @@ export function GithubIntelligencePanel() {
         </button>
 
         {mutation.isError && <ErrorState error={mutation.error as Error} onRetry={() => mutation.mutate()} />}
-        {mutation.isSuccess && <GithubScoreResult score={mutation.data} />}
+        {mutation.isSuccess && (
+          <GithubScoreResult
+            score={mutation.data}
+            onRefresh={() => mutation.mutate({ refresh: true })}
+            refreshing={mutation.isPending}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function GithubScoreResult({ score }: { score: GithubScore }) {
+function GithubScoreResult({
+  score,
+  onRefresh,
+  refreshing,
+}: {
+  score: GithubScore;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   return (
     <div className="mt-5 border-t border-border-soft pt-5 motion-safe:animate-result-in">
       <p className="font-display text-2xl font-bold tracking-tight text-text">@{score.username}</p>
       {score.cached && (
-        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">Cached result</p>
+        <div className="mt-1 flex items-center gap-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">Cached result</p>
+          <button
+            type="button"
+            className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.1em] text-accent hover:underline disabled:opacity-40"
+            onClick={onRefresh}
+            disabled={refreshing}
+          >
+            {refreshing && <Spinner />}
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+        </div>
       )}
 
       <div className="mt-4 flex gap-6">

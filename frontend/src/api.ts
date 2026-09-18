@@ -104,8 +104,11 @@ export interface InsightCard {
   gaps?: string[];
 }
 
-export async function getInsightCard(matchId: string): Promise<{ match_id: string; cards: InsightCard[]; cached: boolean }> {
-  const res = await fetch(`${API_URL}/insight-cards/${matchId}`);
+export async function getInsightCard(
+  matchId: string,
+  refresh = false,
+): Promise<{ match_id: string; cards: InsightCard[]; cached: boolean }> {
+  const res = await fetch(`${API_URL}/insight-cards/${matchId}${refresh ? "?refresh=true" : ""}`);
   return parseJsonOrThrow(res);
 }
 
@@ -118,7 +121,7 @@ export interface GithubScore {
   cached: boolean;
 }
 
-export async function getGithubScore(username: string): Promise<GithubScore> {
-  const res = await fetch(`${API_URL}/github/${encodeURIComponent(username)}/score`);
+export async function getGithubScore(username: string, refresh = false): Promise<GithubScore> {
+  const res = await fetch(`${API_URL}/github/${encodeURIComponent(username)}/score${refresh ? "?refresh=true" : ""}`);
   return parseJsonOrThrow(res);
 }

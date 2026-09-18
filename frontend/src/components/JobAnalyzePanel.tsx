@@ -216,11 +216,13 @@ function CandidateMatchRow({ rank, candidate }: { rank: number; candidate: Ranke
 }
 
 function InsightCardSection({ matchId }: { matchId: string }) {
-  const mutation = useMutation({ mutationFn: () => getInsightCard(matchId) });
+  const mutation = useMutation({
+    mutationFn: (opts?: { refresh?: boolean }) => getInsightCard(matchId, opts?.refresh),
+  });
   const { mutate } = mutation;
 
   useEffect(() => {
-    mutate();
+    mutate(undefined);
   }, [mutate]);
 
   return (
@@ -231,7 +233,18 @@ function InsightCardSection({ matchId }: { matchId: string }) {
         </p>
       )}
 
-      {mutation.isError && <ErrorState error={mutation.error as Error} onRetry={() => mutation.mutate()} />}
+      {mutation.isError && <ErrorState error={mutation.error as Error} onRetry={() => mutation.mutate(undefined)} />}
+
+      {mutation.isSuccess && mutation.data.cached && (
+        <button
+          type="button"
+          className="mb-2 flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.1em] text-contact hover:underline disabled:opacity-40"
+          onClick={() => mutation.mutate({ refresh: true })}
+          disabled={mutation.isPending}
+        >
+          {mutation.isPending ? "Refreshing…" : "Refresh reasoning"}
+        </button>
+      )}
 
       {mutation.isSuccess &&
         mutation.data.cards.map((card, i) => (
