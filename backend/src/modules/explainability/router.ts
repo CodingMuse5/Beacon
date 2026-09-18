@@ -6,18 +6,21 @@ const router = Router();
 
 router.get("/:matchId", async (req, res) => {
   const { matchId } = req.params;
+  const forceRefresh = req.query.refresh === "true";
 
   try {
-    const { data: cached, error: cacheError } = await supabase
-      .from("insight_cards")
-      .select("content")
-      .eq("match_id", matchId)
-      .maybeSingle();
-    if (cacheError) throw new Error(`Failed to check insight card cache: ${cacheError.message}`);
+    if (!forceRefresh) {
+      const { data: cached, error: cacheError } = await supabase
+        .from("insight_cards")
+        .select("content")
+        .eq("match_id", matchId)
+        .maybeSingle();
+      if (cacheError) throw new Error(`Failed to check insight card cache: ${cacheError.message}`);
 
-    if (cached) {
-      res.json({ match_id: matchId, cards: [cached.content], cached: true });
-      return;
+      if (cached) {
+        res.json({ match_id: matchId, cards: [cached.content], cached: true });
+        return;
+      }
     }
 
     const { data: match, error: matchError } = await supabase
@@ -38,7 +41,7 @@ router.get("/:matchId", async (req, res) => {
 
     const { error: insertError } = await supabase
       .from("insight_cards")
-      .insert({ match_id: matchId, content: insightCard });
+      .upsert({ match_id: matchId, content: insightCard }, { onConflict: "match_id" });
     if (insertError) throw new Error(`Failed to save insight card: ${insertError.message}`);
 
     res.json({ match_id: matchId, cards: [insightCard], cached: false });

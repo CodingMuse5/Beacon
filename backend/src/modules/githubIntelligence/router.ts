@@ -7,36 +7,42 @@ const router = Router();
 
 router.get("/:username/score", async (req, res) => {
   const username = req.params.username.trim().toLowerCase();
+  const forceRefresh = req.query.refresh === "true";
 
   try {
-    const { data: cached, error: cacheError } = await supabase
-      .from("github_profiles")
-      .select("tech_stack_score, credibility_score, raw_data")
-      .eq("username", username)
-      .maybeSingle();
-    if (cacheError) throw new Error(`Failed to check GitHub profile cache: ${cacheError.message}`);
+    if (!forceRefresh) {
+      const { data: cached, error: cacheError } = await supabase
+        .from("github_profiles")
+        .select("tech_stack_score, credibility_score, raw_data")
+        .eq("username", username)
+        .maybeSingle();
+      if (cacheError) throw new Error(`Failed to check GitHub profile cache: ${cacheError.message}`);
 
-    if (cached) {
-      res.json({
-        username,
-        tech_stack_score: cached.tech_stack_score,
-        credibility_score: cached.credibility_score,
-        reasoning: (cached.raw_data as { reasoning?: string })?.reasoning ?? null,
-        notable_repos: (cached.raw_data as { notable_repos?: string[] })?.notable_repos ?? [],
-        cached: true,
-      });
-      return;
+      if (cached) {
+        res.json({
+          username,
+          tech_stack_score: cached.tech_stack_score,
+          credibility_score: cached.credibility_score,
+          reasoning: (cached.raw_data as { reasoning?: string })?.reasoning ?? null,
+          notable_repos: (cached.raw_data as { notable_repos?: string[] })?.notable_repos ?? [],
+          cached: true,
+        });
+        return;
+      }
     }
 
     const [profile, repos] = await Promise.all([fetchGithubProfile(username), fetchGithubRepos(username)]);
     const score = await aiService.githubScore(username, profile, repos);
 
-    const { error: insertError } = await supabase.from("github_profiles").insert({
-      username,
-      tech_stack_score: score.tech_stack_score,
-      credibility_score: score.credibility_score,
-      raw_data: score,
-    });
+    const { error: insertError } = await supabase.from("github_profiles").upsert(
+      {
+        username,
+        tech_stack_score: score.tech_stack_score,
+        credibility_score: score.credibility_score,
+        raw_data: score,
+      },
+      { onConflict: "username" },
+    );
     if (insertError) throw new Error(`Failed to save GitHub score: ${insertError.message}`);
 
     res.json({ username, ...score, cached: false });
