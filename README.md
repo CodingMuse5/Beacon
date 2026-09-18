@@ -82,10 +82,22 @@ Visit `http://localhost:5173` — the page checks the backend's `/health` endpoi
 ## Supabase setup
 
 1. Create a project at supabase.com.
-2. In the SQL editor, run the contents of [`ai-service/sql/001_init.sql`](ai-service/sql/001_init.sql) — creates the `vector` extension and all 6 tables (`candidates`, `jobs`, `candidate_embeddings`, `github_profiles`, `matches`, `insight_cards`).
+2. In the SQL editor, run every file in [`ai-service/sql/`](ai-service/sql/) **in order**:
+   - `001_init.sql` — creates the `vector` extension and all 6 tables (`candidates`, `jobs`, `candidate_embeddings`, `github_profiles`, `matches`, `insight_cards`)
+   - `002_job_embedding.sql` — adds the `embedding` column to `jobs`
+   - `003_matching.sql` — creates the `match_candidates` function the Matching Engine depends on, plus a uniqueness constraint on `matches`
+   - `004_drop_undersized_ann_index.sql` — drops the `ivfflat` index that ships in `001_init.sql`; at low data volumes it's an approximate index with too few rows to actually help, and can make vector search silently return zero results (see the Matching Engine phase in the project guide for the full story)
 3. Create a Storage bucket named `resumes`.
 4. Copy the Project URL and `service_role` key (Project Settings → API) into `backend/.env`.
 
-## Next steps
+## Status
 
-Phase 1 is resume ingestion (upload → parse → store), wiring `backend/src/modules/resumeProcessing/router.ts` to: store the file in Supabase Storage, extract its text, call `ai-service`'s `/parse-resume` and `/embed`, then write the result into `candidates` and `candidate_embeddings`.
+All planned phases are built: Resume Ingestion, Job Intelligence, the Matching Engine
+(composite vector-similarity + skill-overlap scoring), Explainability (on-demand
+citation-backed match reasoning), and GitHub Intelligence (real GitHub data + Gemini
+credibility scoring). See each module's router for the implementation, or ask for the
+project's interview-prep guide for a phase-by-phase walkthrough.
+
+Known gaps: no automated test suite yet, and the Gemini free tier's daily request quota
+is a real operational ceiling worth knowing about if the AI-facing features start
+returning errors during heavy testing.
