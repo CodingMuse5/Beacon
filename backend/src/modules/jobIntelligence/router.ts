@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { aiService, AiServiceUnavailableError } from "../../aiService";
+import { contentHashOf } from "../../contentHash";
 import { buildJobEmbeddingText } from "../../embeddingText";
 import { supabase } from "../../supabase";
 
@@ -13,6 +14,19 @@ router.post("/analyze", async (req, res) => {
   }
 
   try {
+    // Checked before any Gemini call, so re-scanning the same job is free.
+    const contentHash = contentHashOf(title, rawText);
+    const { data: existing, error: lookupError } = await supabase
+      .from("jobs")
+      .select()
+      .eq("content_hash", contentHash)
+      .maybeSingle();
+    if (lookupError) throw new Error(`Failed to check for an existing job: ${lookupError.message}`);
+    if (existing) {
+      res.status(200).json({ status: "duplicate", job: existing });
+      return;
+    }
+
     const blueprint = await aiService.parseJob(title, rawText);
 
     const embeddingText = buildJobEmbeddingText(blueprint);
@@ -23,6 +37,7 @@ router.post("/analyze", async (req, res) => {
       .insert({
         title,
         raw_text: rawText,
+        content_hash: contentHash,
         blueprint,
         embedding,
       })

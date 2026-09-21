@@ -63,16 +63,23 @@ export function ResumeUploadPanel() {
         {mutation.isError && (
           <ErrorState error={mutation.error as Error} onRetry={() => mutation.variables && mutation.mutate(mutation.variables)} />
         )}
-        {mutation.isSuccess && <CandidateResult candidate={mutation.data.candidate} />}
+        {mutation.isSuccess && (
+          <CandidateResult candidate={mutation.data.candidate} duplicate={mutation.data.status === "duplicate"} />
+        )}
       </div>
     </div>
   );
 }
 
-function CandidateResult({ candidate }: { candidate: Candidate }) {
+function CandidateResult({ candidate, duplicate }: { candidate: Candidate; duplicate: boolean }) {
   const profile = candidate.parsed_profile;
   return (
     <div className="mt-5 border-t border-border-soft pt-5 motion-safe:animate-result-in">
+      {duplicate && (
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.1em] text-accent">
+          Already in your pool — no new candidate created
+        </p>
+      )}
       <p className="font-display text-2xl font-bold tracking-tight text-text">
         {candidate.full_name ?? "Unnamed candidate"}
       </p>
