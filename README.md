@@ -87,6 +87,7 @@ Visit `http://localhost:5173` — the page checks the backend's `/health` endpoi
    - `002_job_embedding.sql` — adds the `embedding` column to `jobs`
    - `003_matching.sql` — creates the `match_candidates` function the Matching Engine depends on, plus a uniqueness constraint on `matches`
    - `004_drop_undersized_ann_index.sql` — drops the `ivfflat` index that ships in `001_init.sql`; at low data volumes it's an approximate index with too few rows to actually help, and can make vector search silently return zero results (see the Matching Engine phase in the project guide for the full story)
+   - `005_cache_unique_constraints.sql` — adds unique constraints on `insight_cards.match_id` and `github_profiles.username`; the backend upserts into both caches, and without this every attempt to save an insight card or GitHub score fails
 3. Create a Storage bucket named `resumes`.
 4. Copy the Project URL and `service_role` key (Project Settings → API) into `backend/.env`.
 
