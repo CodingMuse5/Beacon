@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { Router } from "express";
 import multer from "multer";
 import { aiService, AiServiceUnavailableError } from "../../aiService";
+import { contentHashOf } from "../../contentHash";
 import { buildCandidateEmbeddingText } from "../../embeddingText";
 import { supabase } from "../../supabase";
 import { extractResumeText, SUPPORTED_RESUME_MIME_TYPES } from "../../textExtraction";
@@ -34,6 +35,19 @@ router.post("/upload", upload.single("file"), async (req, res) => {
       return;
     }
 
+    // Checked before the storage upload and any Gemini call, so a repeat upload is free.
+    const contentHash = contentHashOf(rawText);
+    const { data: existing, error: lookupError } = await supabase
+      .from("candidates")
+      .select()
+      .eq("content_hash", contentHash)
+      .maybeSingle();
+    if (lookupError) throw new Error(`Failed to check for an existing candidate: ${lookupError.message}`);
+    if (existing) {
+      res.status(200).json({ status: "duplicate", candidate: existing });
+      return;
+    }
+
     const storagePath = `${crypto.randomUUID()}-${file.originalname}`;
     const { error: uploadError } = await supabase.storage
       .from("resumes")
@@ -53,6 +67,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
         phone: parsedProfile.phone ?? null,
         resume_storage_path: storagePath,
         raw_text: rawText,
+        content_hash: contentHash,
         parsed_profile: parsedProfile,
         skills: parsedProfile.skills ?? [],
       })

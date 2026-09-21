@@ -67,16 +67,21 @@ export function JobAnalyzePanel() {
         </button>
 
         {mutation.isError && <ErrorState error={mutation.error as Error} onRetry={() => mutation.mutate()} />}
-        {mutation.isSuccess && <JobResult job={mutation.data.job} />}
+        {mutation.isSuccess && <JobResult job={mutation.data.job} duplicate={mutation.data.status === "duplicate"} />}
       </div>
     </div>
   );
 }
 
-function JobResult({ job }: { job: Job }) {
+function JobResult({ job, duplicate }: { job: Job; duplicate: boolean }) {
   const blueprint = job.blueprint;
   return (
     <div className="mt-5 border-t border-border-soft pt-5 motion-safe:animate-result-in">
+      {duplicate && (
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.1em] text-contact">
+          Already scanned — reusing the existing job
+        </p>
+      )}
       <p className="font-display text-2xl font-bold tracking-tight text-text">{job.title}</p>
       {blueprint.seniority && (
         <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-accent">
