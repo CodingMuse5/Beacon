@@ -1,28 +1,30 @@
 import { ApiError } from "../api";
 
 /**
- * Renders a friendlier "the service is still waking up" card for a 503 (Render
- * free-tier cold start exhausted all retries) instead of dumping a raw error message on
- * screen -- with a one-click retry, since the fix here really is just "try again."
- * Any other error still shows as plain text: that's a real failure worth reading, not a
- * transient one worth hiding.
+ * Any 5xx renders as a calm, retryable card instead of raw backend error text -- the
+ * backend already sanitizes what it sends for these (see each router's catch block), so
+ * `error.message` is always safe to show directly. A 503 (cold-start retries exhausted)
+ * gets a slightly more specific title, since that cause is actually known; anything else
+ * gets a generic one, since claiming a specific cause we're not sure of would be dishonest.
+ * A 4xx (bad input, e.g. "No file uploaded") shows as plain text with no retry button --
+ * retrying identical input won't change the outcome.
  */
 export function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
-  const isWakingUp = error instanceof ApiError && error.status === 503;
+  const status = error instanceof ApiError ? error.status : 0;
 
-  if (!isWakingUp) {
+  if (status < 500) {
     return <p className="mt-4 text-sm text-warn">{error.message}</p>;
   }
+
+  const title = status === 503 ? "Still waking up" : "Something went wrong";
 
   return (
     <div className="mt-4 flex flex-col gap-3 border border-accent/40 bg-accent/5 p-4">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent" />
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-accent">Still waking up</p>
-          <p className="mt-1 text-sm leading-relaxed text-text-dim">
-            The AI service is booting up after a period of inactivity — this can take up to a minute the first time.
-          </p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-accent">{title}</p>
+          <p className="mt-1 text-sm leading-relaxed text-text-dim">{error.message}</p>
         </div>
       </div>
       <button

@@ -46,12 +46,12 @@ router.get("/:matchId", async (req, res) => {
 
     res.json({ match_id: matchId, cards: [insightCard], cached: false });
   } catch (err) {
+    console.error("[insight-cards/:matchId]", err);
     if (err instanceof AiServiceUnavailableError) {
       res.status(503).json({ error: err.message });
       return;
     }
-    const message = err instanceof Error ? err.message : "Unknown error generating insight card.";
-    res.status(502).json({ error: message });
+    res.status(502).json({ error: "Something went wrong while generating this reasoning. Please try again." });
   }
 });
 
