@@ -51,12 +51,12 @@ router.get("/:username/score", async (req, res) => {
       res.status(404).json({ error: err.message });
       return;
     }
+    console.error("[github/:username/score]", err);
     if (err instanceof AiServiceUnavailableError) {
       res.status(503).json({ error: err.message });
       return;
     }
-    const message = err instanceof Error ? err.message : "Unknown error scoring GitHub profile.";
-    res.status(502).json({ error: message });
+    res.status(502).json({ error: "Something went wrong while scoring this GitHub profile. Please try again." });
   }
 });
 

@@ -8,8 +8,8 @@ router.get("/:jobId", async (req, res) => {
     const candidates = await rankCandidatesForJob(req.params.jobId);
     res.json({ job_id: req.params.jobId, candidates });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error computing matches.";
-    res.status(502).json({ error: message });
+    console.error("[matches/:jobId]", err);
+    res.status(502).json({ error: "Something went wrong while finding matches for this job. Please try again." });
   }
 });
 

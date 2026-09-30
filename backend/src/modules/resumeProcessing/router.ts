@@ -85,12 +85,12 @@ router.post("/upload", upload.single("file"), async (req, res) => {
       candidate,
     });
   } catch (err) {
+    console.error("[resumes/upload]", err);
     if (err instanceof AiServiceUnavailableError) {
       res.status(503).json({ error: err.message });
       return;
     }
-    const message = err instanceof Error ? err.message : "Unknown error processing resume.";
-    res.status(502).json({ error: message });
+    res.status(502).json({ error: "Something went wrong while processing this resume. Please try again." });
   }
 });
 

@@ -50,12 +50,12 @@ router.post("/analyze", async (req, res) => {
       job,
     });
   } catch (err) {
+    console.error("[jobs/analyze]", err);
     if (err instanceof AiServiceUnavailableError) {
       res.status(503).json({ error: err.message });
       return;
     }
-    const message = err instanceof Error ? err.message : "Unknown error processing job description.";
-    res.status(502).json({ error: message });
+    res.status(502).json({ error: "Something went wrong while analyzing this job description. Please try again." });
   }
 });
 
